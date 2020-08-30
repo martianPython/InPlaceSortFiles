@@ -1,6 +1,7 @@
 package FileDaoWoker;
 
 import AppPredicates.AppPredicate;
+import PriorityQueueComparator.AnonymousPriorityFileComparator;
 import PriorityQueueComparator.FilePriorityComparator;
 import RoundRobinDaoWorker.RoundRobinProcess;
 import org.apache.commons.io.FileUtils;
@@ -12,11 +13,9 @@ import java.util.stream.Collectors;
 
 public class FileTasks {
     RoundRobinProcess assembleSamePriorityRoundRobinSchedule = new RoundRobinProcess();
-    int[] multiSegmentsPriorityList;
-    public FileTasks(int[] multiSegmentsPriorityList){
-        this.multiSegmentsPriorityList=multiSegmentsPriorityList;
-    }
-    public PriorityQueue<File> fetchFilesFromDirectory(File directory) {
+
+
+    public PriorityQueue<File> fetchFilesFromDirectoryPerMsgId(File directory,int[] multiSegmentsPriorityList) {
         FilePriorityComparator filePriorityComparator = new FilePriorityComparator(multiSegmentsPriorityList);
         PriorityQueue<File> priorityQueue = new PriorityQueue<>(filePriorityComparator);
         try {
@@ -27,7 +26,25 @@ public class FileTasks {
         }
         return priorityQueue;
     }
-    private List<File> fetchListOfWimsFilesMessageId (File wimsDirectory,int[] messageIdArray){
+    public List<File> fetchAnonymousPriorityFiles(File wimsDirectory,List<Integer> totalMessageSetAssignedPriority ){
+        List<Integer> totalMessageIdAvailableAtTheInstant  = Arrays.stream(listAllUniqueMsgIdInWimsSystem(wimsDirectory)).boxed().collect(Collectors.toList());
+        totalMessageIdAvailableAtTheInstant.stream().distinct().collect(Collectors.toList());
+        totalMessageIdAvailableAtTheInstant.removeIf(element->element==-1);
+        System.out.print("Message which are present in wims system");
+        Set<Integer> messageIdAtTheInstantSet = new HashSet<Integer>(totalMessageIdAvailableAtTheInstant);
+        totalMessageIdAvailableAtTheInstant.clear();
+        messageIdAtTheInstantSet.forEach(System.out::println);
+        messageIdAtTheInstantSet.removeAll(totalMessageSetAssignedPriority);
+        totalMessageSetAssignedPriority.clear();
+        System.out.println("The all remaining message,which are not assigned priority are" +messageIdAtTheInstantSet);
+        int[] remainingPriorityList = messageIdAtTheInstantSet.stream().mapToInt(Number::intValue).toArray();
+        List<File> anonymousPriorityFiles = (fetchListOfWimsFilesMessageId(wimsDirectory,remainingPriorityList));
+        anonymousPriorityFiles.sort(new AnonymousPriorityFileComparator());
+        return anonymousPriorityFiles;
+    }
+
+
+    public List<File> fetchListOfWimsFilesMessageId (File wimsDirectory,int[] messageIdArray){
       return   FileUtils.listFiles(wimsDirectory, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE)
                 .stream()
                 .filter(aFile-> AppPredicate.isIn.test(Integer.parseInt(aFile.getName().split("_")[2]),messageIdArray))
@@ -41,6 +58,7 @@ public class FileTasks {
                 .filter(theFile->AppPredicate.isTheFileOfMessageId.test(theFile,messageId))
                 .collect(Collectors.toList());
     }
+
 
 
     public List<List<File>> yieldSamePrioritySchedule(int[] messageIdArray, File wimsDirectory, HashMap<String, Boolean> reverseHashMap){
@@ -97,6 +115,22 @@ public class FileTasks {
         }
         return indexOfSequenceNumberAlterList;
     }
+    public List<File> fetchAllFilesFromDirectory(File wimsDirectory){
+        return new ArrayList<>(FileUtils.listFiles(wimsDirectory, TrueFileFilter.INSTANCE, TrueFileFilter.INSTANCE));
+    }
+    public int[] listAllUniqueMsgIdInWimsSystem(File wimsDirectory){
+        HashSet<Integer> uniqueMessageIdHashSet = new HashSet<Integer>();
+        for (File aMessageIdFile: fetchAllFilesFromDirectory(wimsDirectory)) {
+            uniqueMessageIdHashSet.add(Integer.parseInt(aMessageIdFile.getName().split("_")[2]));
+        }
+        int[] messageIdList = new int[uniqueMessageIdHashSet.size()];
+        int i=0;
+        for (Integer val:uniqueMessageIdHashSet) {
+            messageIdList[i++]=val;
+        }
+        return  messageIdList;
+    }
+
 
 
 }

@@ -1,4 +1,4 @@
-package PriorityQueueComparator;
+package FirstComeFirstServerWorker;
 
 import java.io.File;
 import java.util.Comparator;
@@ -6,10 +6,10 @@ import java.util.Comparator;
 public class AnonymousPriorityFileComparator implements Comparator<File> {
     @Override
     public int compare(File fileA, File fileB) {
-        if(fileA.getName().equalsIgnoreCase(fileB.getName())){
-            return 0;
-        }else{
+        if(fileA.getName().split("_")[2].equalsIgnoreCase(fileB.getName().split("_")[2])){
             return fileA.lastModified()>fileB.lastModified()?1:-1;
+        }else{
+           return 0;
         }
 
 

@@ -1,0 +1,51 @@
+[Configuration For Generating WIMS Files]
+outPutDir-SAT1A=/home/koushik/Desktop/WIMS/1A/
+outPutDir-SAT1G=/home/koushik/Desktop/WIMS/1A/
+pollingDelayFileGenerate1A=1000
+pollingDelayFileGenerate1G=1000
+messageIdToGenerate1A=20,90,21,18,17,41,5,72
+messageIdToGenerate1G=20,90,21,18,41,17,5,72
+messageIdSequenceNumStr=41:3,21:3,18:3,17:3,20:3,72:2,90:3,100:3
+messageIdSegmentNumStr=41:3,21:3,18:2,17:2,20:2,72:1,90:2,100:2
+
+[Configuration For File Moving Scheduler ]
+inputDirectory=/home/koushik/Desktop/WIMS/
+movDirectory=/home/koushik/Desktop/WIMS/MOV/
+
+pollingDelay1A=2000
+pollingDelay1G=2000
+
+firstComeFirstServe=true
+sequencePreemptiveRoundRobin=true
+
+[Allocated Satellite for WIMS ]
+wimsSatellites=1A
+
+[Message Priority] 
+#Syntax=priority:messageId 
+## each Priority_List can have a maximum of 4 messageID,i.e size=4 ,anything more than 4 will be simply ignored ##
+## here -1 is such a MessageId which does not have the possiblity to be present in the WIMS Sytem. ##
+oneSegmentMessageIdArray=21,41,-1,-1
+multiSegmentsPriority1List=41,21,-1,-1
+multiSegmentsPriority2List=72,18,17,-1
+
+
+pollingDelay=2000
+
+[Round Robin Scheme]
+reverseProcessingMap=41:false,21:true,18:true,17:true,20:false,100:false,5:false,-1:false,72:false,90:false
+
+[Round Robin Processing Scheme]
+roundRobinProcessingMap=multiSegmentsPriority1List:true,multiSegmentsPriority2List:false
+
+[First Come First Serve Processing Scheme]
+firstComeFirstServerProcessingMap=multiSegmentsPriority1List:false,multiSegmentsPriority2List:false
+
+if firstcumfirst serve is fals the system will go for priority Scheduling by default
+
+
+
+
+
+
+

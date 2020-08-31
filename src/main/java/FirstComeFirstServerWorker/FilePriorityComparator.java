@@ -1,4 +1,4 @@
-package PriorityQueueComparator;
+package FirstComeFirstServerWorker;
 
 import java.io.File;
 import java.util.Comparator;
@@ -12,23 +12,28 @@ import java.util.Comparator;
  * @since  3-07-2020
  */
 public class FilePriorityComparator implements Comparator<File> {
-    int[] messageIdArray ;
+    private int[] messageIdArray ;
     public FilePriorityComparator(int[] messageIdArray){
         this.messageIdArray = messageIdArray;
     }
 
     /**
      * The method shall be exercise ordering on the Priority Queue consists of the WIMS Files.
-     * @param fileA One file which is to be arranged as per priority provided in the Configuration File.
-     * @param fileB Another file which is to be arranged as per priority provided in the Configuration File.
+     * @param fileA One file, which is to be arranged as per priority provided in the Configuration File.
+     * @param fileB Another file, which is to be arranged as per priority provided in the Configuration File.
      * @return value post comparison on the files.
      */
     @Override
     public int compare(File fileA, File fileB) {
         int fileAMessageId= Integer.parseInt(fileA.getName().split("_")[2]);
         int fileBMessageId= Integer.parseInt(fileB.getName().split("_")[2]);
+        int fileASeqNum = Integer.parseInt(fileA.getName().split("_")[3]);
+        int fileBSeqNum = Integer.parseInt(fileB.getName().split("_")[3]);
         if(fileAMessageId==fileBMessageId){
-            return fileA.lastModified()>fileB.lastModified()?1:-1;
+           // if(fileASeqNum==fileBSeqNum){
+                return fileA.lastModified()<fileB.lastModified()?-1:1;
+           // }
+
         }
         if(fileAMessageId==messageIdArray[0]){
             return -1;

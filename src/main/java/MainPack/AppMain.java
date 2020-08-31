@@ -1,46 +1,48 @@
 package MainPack;
 
+import ColorUiPackage.ConsoleColors;
 import FileDaoWoker.FileTasks;
+import PriorityLevelSchedulerWorker.PriorityLevelScheduler;
+import SatelliteWimsWokers.SatelliteThreadTemplate;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+
+import static PriorityLevelSchedulerWorker.PriorityLevelScheduler.*;
 
 public class AppMain {
     public static void main(String[] args) {
-        boolean firstComeFirstServe =true;
-    File  dir = new File("/home/koushik/Desktop/WIMS/1A");
-    int[] multiSegmentsPriority1List={21,72,20,-1};int[] multiSegmentsPriority2List={18,17,-1,-1};
-        HashMap<String, Boolean> reverseHashMap = new HashMap<>();
-        reverseHashMap.put("21",false);reverseHashMap.put("41",false);reverseHashMap.put("20",false);reverseHashMap.put("5",true);
-        FileTasks fileTasks = new FileTasks();
-    if(firstComeFirstServe){
-        PriorityQueue<File>  filesPriorityQueue = fileTasks.fetchFilesFromDirectoryPerMsgId(dir,multiSegmentsPriority1List);
-        while (!filesPriorityQueue.isEmpty()){
-            System.out.println(filesPriorityQueue.poll());
-        }
-        List<Integer> totalMessageSetAssignedPriority = Arrays.stream(multiSegmentsPriority1List).boxed().collect(Collectors.toList());
-        totalMessageSetAssignedPriority.addAll(Arrays.stream(multiSegmentsPriority2List).boxed().collect(Collectors.toList()));
-        List<File> anonymousPriorityFiles = fileTasks.fetchAnonymousPriorityFiles(dir,totalMessageSetAssignedPriority);
-        for (File aFile:anonymousPriorityFiles) {
-            System.out.println(aFile);
-        }
-    }else{
-        //  Round Robin Processing to be executed here
-        List<List<File>> listList = fileTasks.yieldSamePrioritySchedule(multiSegmentsPriority1List,(dir),reverseHashMap);
-        listList.removeIf(List::isEmpty);
-        for (List<File> fileList: listList ) {
-            for (File aFile: fileList) {
-                System.out.println(aFile);
-            }
-            System.out.println();
-        }
-
-    }
 
 
+        String[] satellitesAllocatedForWims = new String[0];
+        //int number =3;
+        // AtomicBoolean [] atomicBooleansArray = new AtomicBoolean[number];
+        //  Arrays.fill(atomicBooleansArray,new AtomicBoolean(false));
+        //atomicBooleansArray[0].set(true  );
+
+        StringBuilder pathOfConfigFile = new StringBuilder("/home/koushik/Desktop/WIMS/Config/").append("WimsSchedulerConfig.dat");
+       // StringBuilder pathOfConfigFile = new StringBuilder("/home/user/WIMS/Config/").append("WimsSchedulerConfig.dat");
+        try (InputStream input = new FileInputStream(pathOfConfigFile.toString())) {
+            Properties prop = new Properties();
+            prop.load(input);
+            satellitesAllocatedForWims = (prop.getProperty("wimsSatellites").split(","));
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+        final ExecutorService threadPoolExecutor = Executors.newFixedThreadPool(2);
+        ThreadPoolExecutor threadPoolExecutorService = (ThreadPoolExecutor) threadPoolExecutor;
+        System.out.println(Arrays.toString(satellitesAllocatedForWims));
+        for (String aWimsSatellite : satellitesAllocatedForWims) {
+            SatelliteThreadTemplate satellite1AThread = new SatelliteThreadTemplate(aWimsSatellite);
+            threadPoolExecutorService.execute(satellite1AThread);
+        }
 
 
     }
-
 }

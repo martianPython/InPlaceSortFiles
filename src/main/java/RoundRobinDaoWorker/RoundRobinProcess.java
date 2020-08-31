@@ -5,7 +5,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class RoundRobinProcess {
+public class RoundRobinProcess implements IRoundRobinProcess {
+    @Override
     public List<List<File>> assembleSamePriorityRoundRobinSchedule(List<List<File>> messageSeqFileList1, List<List<File>> messageSeqFileList2, List<List<File>> messageSeqFileList3, List<List<File>> messageSeqFileList4, int[] messageIdArray, HashMap<String, Boolean> reverseHashMap)
     {
 
@@ -40,6 +41,7 @@ public class RoundRobinProcess {
                 if (i < messageSeqFileList4.size()) roundRobinFileList.add(messageSeqFileList4.get(messageSeqFileList4.size()-1-i));
             }
         }
+       // roundRobinFileList.forEach(System.out::println);
         return roundRobinFileList;
     }
 }

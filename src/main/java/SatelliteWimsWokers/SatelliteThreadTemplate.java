@@ -2,6 +2,7 @@ package SatelliteWimsWokers;
 
 import FileDaoWoker.FileTasks;
 import PriorityLevelSchedulerWorker.PriorityLevelScheduler;
+import SchedulerConfiguration.SpacecraftConfig;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,6 +16,7 @@ import static PriorityLevelSchedulerWorker.PriorityLevelScheduler.*;
 
 
 public class SatelliteThreadTemplate implements Runnable{
+    SpacecraftConfig spacecraftConfig;
     String satelliteId;
     StringBuilder pathOfConfigFile = new StringBuilder("/home/koushik/Desktop/WIMS/Config/").append("WimsSchedulerConfig.dat");
     //StringBuilder pathOfConfigFile = new StringBuilder("/home/user/WIMS/Config/").append("WimsSchedulerConfig.dat");
@@ -31,8 +33,9 @@ public class SatelliteThreadTemplate implements Runnable{
     private int[] oneSegmentMessageIdArray;//= {41,21};
     private int[] multiSegmentsPriority1List;//= {17,18};
     private int[] multiSegmentsPriority2List;// = {20};
-    public SatelliteThreadTemplate(String satelliteId){
+    public SatelliteThreadTemplate(String satelliteId,SpacecraftConfig spacecraftConfig){
         this.satelliteId=satelliteId;
+        this.spacecraftConfig=spacecraftConfig;
     }
     PriorityLevelScheduler priorityLevelScheduler = new PriorityLevelScheduler();
     @Override
@@ -50,14 +53,14 @@ public class SatelliteThreadTemplate implements Runnable{
                         movDirectory =  (properties.getProperty("movDirectory"));
                         firstComeFirstServe = Boolean.parseBoolean(properties.getProperty("firstComeFirstServe"));
                         sequencePreemptiveRoundRobin = Boolean.parseBoolean(properties.getProperty("sequencePreemptiveRoundRobin"));
-                        roundRobinHashMap =(HashMap<String, Boolean>) Arrays.stream((properties.getProperty("roundRobinProcessingMap")).split(",")).map(s -> s.split(":")).collect(Collectors.toMap(e -> e[0], e -> Boolean.parseBoolean(e[1])));
-                        reverseHashMap=(HashMap<String, Boolean>) Arrays.stream((properties.getProperty("reverseProcessingMap")).split(",")).map(s -> s.split(":")).collect(Collectors.toMap(e -> e[0], e -> Boolean.parseBoolean(e[1])));
-                        firstComeFirstServerProcessingMap=(HashMap<String, Boolean>) Arrays.stream((properties.getProperty("firstComeFirstServerProcessingMap")).split(",")).map(s -> s.split(":")).collect(Collectors.toMap(e -> e[0], e -> Boolean.parseBoolean(e[1])));
+                        roundRobinHashMap = spacecraftConfig.getRoundRobinMap();//(HashMap<String, Boolean>) Arrays.stream((properties.getProperty("roundRobinProcessingMap")).split(",")).map(s -> s.split(":")).collect(Collectors.toMap(e -> e[0], e -> Boolean.parseBoolean(e[1])));
+                        reverseHashMap= spacecraftConfig.getReverseMap();
+                        firstComeFirstServerProcessingMap=spacecraftConfig.getFirstComeFirstServeMap();
                        // priorityProcessingMap = (HashMap<String, Boolean>) Arrays.stream((properties.getProperty("priorityProcessingMap")).split(",")).map(s -> s.split(":")).collect(Collectors.toMap(e -> e[0], e -> Boolean.parseBoolean(e[1])));
-                        pollingDelay1A = Long.parseLong(properties.getProperty("pollingDelay1A"));
-                        oneSegmentMessageIdArray = Stream.of(properties.getProperty("oneSegmentMessageIdArray").split(",")).mapToInt(Integer::parseInt).toArray();
-                        multiSegmentsPriority1List = Stream.of(properties.getProperty("multiSegmentsPriority1List").split(",")).mapToInt(Integer::parseInt).toArray();
-                        multiSegmentsPriority2List = Stream.of(properties.getProperty("multiSegmentsPriority2List").split(",")).mapToInt(Integer::parseInt).toArray();
+                        pollingDelay1A = spacecraftConfig.getPoolingDelay();
+                        oneSegmentMessageIdArray = spacecraftConfig.getOneSegmentMessageId().stream().mapToInt(Integer::intValue).toArray();
+                        multiSegmentsPriority1List = spacecraftConfig.getMultiSegmentsPriority1List().stream().mapToInt(Integer::intValue).toArray();
+                        multiSegmentsPriority2List = spacecraftConfig.getMultiSegmentsPriority2List().stream().mapToInt(Integer::intValue).toArray();
                         } catch (Exception exception) {
                         exception.printStackTrace();
                     }

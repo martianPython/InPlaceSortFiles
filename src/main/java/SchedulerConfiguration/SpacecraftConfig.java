@@ -2,16 +2,10 @@ package SchedulerConfiguration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.commons.lang3.builder.ReflectionToStringBuilder;
-import org.apache.commons.lang3.builder.ToStringStyle;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class SpacecraftConfig {
     private  long poolingDelay;
@@ -34,27 +28,16 @@ public class SpacecraftConfig {
         this.firstComeFirstServeMap = firstComeFirstServeMap;
         this.preemptAfterEachSequence = preemptAfterEachSequence;
     }
-
     public SpacecraftConfig() {
     }
-
-
     public static  SpacecraftConfig getYamlConfiguration(String satelliteConfig){
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.findAndRegisterModules();
         SpacecraftConfig spacecraftConfig = new SpacecraftConfig();
         try {
-
              spacecraftConfig = mapper.readValue(new File(satelliteConfig), SpacecraftConfig.class);
-
-
-
         } catch (Exception e) {
-
-            // TODO Auto-generated catch block
-
             e.printStackTrace();
-
         }
         return  spacecraftConfig;
     }

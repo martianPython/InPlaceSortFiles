@@ -12,7 +12,7 @@ import java.util.Comparator;
  * @since  3-07-2020
  */
 public class FilePriorityComparator implements Comparator<File> {
-    private int[] messageIdArray ;
+    private final int[] messageIdArray ;
     public FilePriorityComparator(int[] messageIdArray){
         this.messageIdArray = messageIdArray;
     }

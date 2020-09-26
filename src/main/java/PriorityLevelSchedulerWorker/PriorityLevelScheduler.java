@@ -2,81 +2,114 @@ package PriorityLevelSchedulerWorker;
 
 import ColorUiPackage.ConsoleColors;
 import FileDaoWoker.FileTasks;
-import FirstComeFirstServerWorker.AnonymousPriorityFileComparator;
-import ProcessScheduleWorker.FileMovProcessTask;
-import ProcessScheduleWorker.IProcessWimsSchedule;
+import FirstComeFirstServerWorker.FilePriorityComparator;
 import ProcessScheduleWorker.ProcessWimsSchedule;
 import org.apache.commons.io.comparator.LastModifiedFileComparator;
 
 import java.io.File;
-import java.util.*;
-import java.util.function.Consumer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.stream.Collectors;
 //
 public class PriorityLevelScheduler {
+    String satelliteId;
 ProcessWimsSchedule processWimsSchedule = new ProcessWimsSchedule();
-public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue, int[] oneSegmentMessageIdArray, File inputDirectory,String movDir) {
-        System.out.println(ConsoleColors.RED_BOLD_BRIGHT + " starting scheduleSingleSegmentWimsFiles " + ConsoleColors.RESET);
+
+    public PriorityLevelScheduler(String satelliteId) {
+        this.satelliteId = satelliteId;
+    }
+
+    public  void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue, int[] oneSegmentMessageIdArray, File inputDirectory,String movDir,File archiveDirectory,long copyPollingDelay) {
+//        System.out.println(ConsoleColors.RED_BOLD_BRIGHT + " starting scheduleSingleSegmentWimsFiles " + ConsoleColors.RESET);
         FileTasks fileTasks = new FileTasks();
         for (File aFile:oneSegmentPriorityQueue) {
             //System.out.println(ConsoleColors.GREEN_BOLD_BRIGHT + aFile +ConsoleColors.RESET);
-            processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
-           // System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT + " will check for higher Priority Messages here");
+            // System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT + " will check for higher Priority Messages here");
             List<Integer> oneSegmentMessageIdList =  Arrays.stream(oneSegmentMessageIdArray).boxed().collect(Collectors.toList());
             int[] higherPriorityMessageIdArray = Arrays.stream(oneSegmentMessageIdArray, 0, oneSegmentMessageIdList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
-            fileTasks.scheduleHigherPriorityOneSegmentFilesPresent(inputDirectory,movDir,higherPriorityMessageIdArray);
+            fileTasks.scheduleHigherPriorityOneSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,higherPriorityMessageIdArray,copyPollingDelay);
+            processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
 
         }
     }
 
 
     public  void scheduleMultiSegmentPriority1LevelWimsFiles(String wimsSatellite,HashMap<String, Boolean> roundRobinHashMap,HashMap<String, Boolean> firstComeFirstServerProcessingMap,
-                                                             boolean sequencePreemptiveRoundRobin, File inputDirectory, String movDir, int[] multiSegmentsPriority1List,
-                                                             int[] oneSegmentMessageIdArray, HashMap<String,Boolean> reverseHashMap) {
-        System.out.println(ConsoleColors.RED_BOLD_BRIGHT + " starting scheduleMultiSegmentPriority1LevelWimsFiles " + ConsoleColors.RESET);
+                                                             boolean sequencePreemptiveRoundRobin, File inputDirectory, String movDir,File archiveDirectory, int[] multiSegmentsPriority1List,
+                                                             int[] oneSegmentMessageIdArray, HashMap<String,Boolean> reverseHashMap,long copyPollingDelay) {
+//        System.out.println(ConsoleColors.RED_BOLD_BRIGHT + " starting scheduleMultiSegmentPriority1LevelWimsFiles " + ConsoleColors.RESET);
         FileTasks fileTasks = new FileTasks();
         if(!roundRobinHashMap.get("multiSegmentsPriority1List"))
         {
-            List<File>  filesPriorityQueue = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,multiSegmentsPriority1List);
+            List<File>  filesPriorityQueue = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,multiSegmentsPriority1List,satelliteId);
             if(firstComeFirstServerProcessingMap.get("multiSegmentsPriority1List")){
                 filesPriorityQueue =  sortFileBasedOnTimeStamp(filesPriorityQueue);
+//                System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT +  " POst Sorting as per Time Stamp " + ConsoleColors.RESET);
+//                for (File file:filesPriorityQueue) {
+//                    System.out.println(ConsoleColors.WHITE_BOLD_BRIGHT + file + ConsoleColors.RESET);
+//                }
                 filesPriorityQueue = fileTasks.reverseMessageId(reverseHashMap,filesPriorityQueue,multiSegmentsPriority1List,wimsSatellite);
                 for (File aFile:filesPriorityQueue) {
                     //System.out.println(ConsoleColors.CYAN_BOLD_BRIGHT + aFile +ConsoleColors.RESET);
-                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
-                    List<Integer> multipleSegmentPriority1LevelList =  Arrays.stream(multiSegmentsPriority1List).boxed().collect(Collectors.toList());
-                    int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority1List, 0, multipleSegmentPriority1LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
-                   // System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
-                    fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,new int[]{});
+//                    List<Integer> multipleSegmentPriority1LevelList =  Arrays.stream(multiSegmentsPriority1List).boxed().collect(Collectors.toList());
+//                    int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority1List, 0, multipleSegmentPriority1LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
+//                    System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
+
+                    List<File> oneSegmentPriorityQueue = fileTasks.fetchOneSegmentFilesPriorityWise(inputDirectory,oneSegmentMessageIdArray,satelliteId);
+                    scheduleSingleSegmentWimsFiles(oneSegmentPriorityQueue,oneSegmentMessageIdArray,inputDirectory,movDir,archiveDirectory,copyPollingDelay);
+//                    fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,new int[]{});
+                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
 
                 }
-            }else{ // Strict Priority Scheduling
+            }else{
+                // Strict Priority Scheduling
+                FilePriorityComparator filePriorityComparator = new FilePriorityComparator(multiSegmentsPriority1List);
+                filesPriorityQueue.sort(filePriorityComparator);
                 filesPriorityQueue = fileTasks.reverseMessageId(reverseHashMap,filesPriorityQueue,multiSegmentsPriority1List,wimsSatellite);
                 for (File aFile:filesPriorityQueue) {
-                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
                     List<Integer> multipleSegmentPriority1LevelList =  Arrays.stream(multiSegmentsPriority1List).boxed().collect(Collectors.toList());
                     int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority1List, 0, multipleSegmentPriority1LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
-                    System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
-                    fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,higherPriorityMessageIdArray);
+//                    System.out.println("--more priority from level 1 ---> " + Arrays.toString(higherPriorityMessageIdArray));
+
+
+                    List<File> oneSegmentPriorityQueue = fileTasks.fetchOneSegmentFilesPriorityWise(inputDirectory,oneSegmentMessageIdArray,satelliteId);
+                    scheduleSingleSegmentWimsFiles(oneSegmentPriorityQueue,oneSegmentMessageIdArray,inputDirectory,movDir,archiveDirectory,copyPollingDelay);
+//
+                    List<File>  updatedSameLevelHigherPriorityFiles = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,higherPriorityMessageIdArray,satelliteId);
+                    for (File aSameLevelHigherPriorityFile: updatedSameLevelHigherPriorityFiles) {
+                        List<File> updatedOneSegmentPriorityQueue = fileTasks.fetchOneSegmentFilesPriorityWise(inputDirectory,oneSegmentMessageIdArray,satelliteId);
+                        scheduleSingleSegmentWimsFiles(updatedOneSegmentPriorityQueue,oneSegmentMessageIdArray,inputDirectory,movDir,archiveDirectory,copyPollingDelay);
+                        processWimsSchedule.consumeNProcessWimsScheduledFiles(aSameLevelHigherPriorityFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
+
+                    }
+                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
+
+//                    fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,higherPriorityMessageIdArray);
 
                 }
             }
-
-
         }else{
             //  Round Robin Processing to be executed here
-            List<List<File>> listList = fileTasks.yieldSamePrioritySchedule(multiSegmentsPriority1List,(inputDirectory),reverseHashMap);
+            List<List<File>> listList = fileTasks.yieldSamePrioritySchedule(multiSegmentsPriority1List,(inputDirectory),reverseHashMap,satelliteId);
             listList.removeIf(List::isEmpty);
             File aFileInList= null;
             for (List<File> fileList: listList ) {
                 for (File aFile: fileList) {
                     aFileInList=aFile;
-                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
+                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
                     //System.out.println(aFile);
                     if(!sequencePreemptiveRoundRobin){
                         List<Integer> multipleSegmentPriority1LevelList =  Arrays.stream(multiSegmentsPriority1List).boxed().collect(Collectors.toList());
                         int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority1List, 0, multipleSegmentPriority1LevelList.indexOf(Integer.parseInt(aFileInList.getName().split("_")[2]))).toArray();
-                        fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,new int[]{});
+                        System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
+
+
+                        List<File> oneSegmentPriorityQueue = fileTasks.fetchOneSegmentFilesPriorityWise(inputDirectory,oneSegmentMessageIdArray,satelliteId);
+                        scheduleSingleSegmentWimsFiles(oneSegmentPriorityQueue,oneSegmentMessageIdArray,inputDirectory,movDir,archiveDirectory,copyPollingDelay);
+
+//                        fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,new int[]{});
                     }
 
                 }
@@ -84,7 +117,10 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
                     List<Integer> multipleSegmentPriority1LevelList =  Arrays.stream(multiSegmentsPriority1List).boxed().collect(Collectors.toList());
                     int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority1List, 0, multipleSegmentPriority1LevelList.indexOf(Integer.parseInt(aFileInList.getName().split("_")[2]))).toArray();
                     System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
-                    fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,new int[]{});
+                    List<File> oneSegmentPriorityQueue = fileTasks.fetchOneSegmentFilesPriorityWise(inputDirectory,oneSegmentMessageIdArray,satelliteId);
+                    scheduleSingleSegmentWimsFiles(oneSegmentPriorityQueue,oneSegmentMessageIdArray,inputDirectory,movDir,archiveDirectory,copyPollingDelay);
+
+//                    fileTasks.scheduleHigherPriorityOneNMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,new int[]{});
                 }
 
                 System.out.println();
@@ -92,39 +128,69 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
 // scheduling of     multiSegmentsPriority1List ends here
         }
     }
-    public List<File> sortFileBasedOnTimeStamp(List<File> fileList){
+    private List<File> sortFileBasedOnTimeStamp(List<File> fileList){
         File[] arrayOfFiles = fileList.toArray(new File[0]);
         Arrays.sort(arrayOfFiles, LastModifiedFileComparator.LASTMODIFIED_COMPARATOR);
       fileList.clear();
         fileList =  new ArrayList<>(Arrays.asList(arrayOfFiles));
+//        System.out.println("From sort based FUcntion");
+//        for (File file:fileList ) {
+//            System.out.println(ConsoleColors.BLUE_BOLD_BRIGHT + file + ConsoleColors.RESET);
+//        }
         return  fileList;
     }
 
-    public  void scheduleMultiSegmentPriority2LevelWimsFiles(String wimsSatellite,HashMap<String, Boolean> roundRobinHashMap,HashMap<String, Boolean> firstComeFirstServerProcessingMap,boolean sequencePreemptiveRoundRobin,File inputDirectory,String movDir,int[] multiSegmentsPriority1List,int[] multiSegmentsPriority2List,
-                                                                    int[] oneSegmentMessageIdArray,HashMap<String,Boolean> reverseHashMap) {
+    public  void scheduleMultiSegmentPriority2LevelWimsFiles(String wimsSatellite,HashMap<String, Boolean> roundRobinHashMap,HashMap<String, Boolean> firstComeFirstServerProcessingMap,boolean sequencePreemptiveRoundRobin,File inputDirectory,String movDir
+            ,File archiveDirectory,int[] multiSegmentsPriority1List,int[] multiSegmentsPriority2List,
+                                                                    int[] oneSegmentMessageIdArray,HashMap<String,Boolean> reverseHashMap,long copyPollingDelay) {
+//        System.out.println(ConsoleColors.RED_BOLD_BRIGHT + " starting scheduleMultiSegmentPriority2LevelWimsFiles " + ConsoleColors.RESET);
         FileTasks fileTasks = new FileTasks();
         if(!roundRobinHashMap.get("multiSegmentsPriority2List"))
         {
-            List<File>  filesPriorityQueue = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,multiSegmentsPriority2List);
+            List<File>  filesPriorityQueue = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,multiSegmentsPriority2List,satelliteId);
 
             if(firstComeFirstServerProcessingMap.get("multiSegmentsPriority2List")){
                 filesPriorityQueue =  sortFileBasedOnTimeStamp(filesPriorityQueue);
+//                System.out.println("----------------------------here --------------------");
+//                for (File file:filesPriorityQueue ) {
+//                    System.out.println(ConsoleColors.BLUE + file + ConsoleColors.RESET);
+//                }
                 filesPriorityQueue = fileTasks.reverseMessageId(reverseHashMap,filesPriorityQueue,multiSegmentsPriority2List,wimsSatellite);
                 for (File aFile:filesPriorityQueue) {
-                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
-                    List<Integer> multipleSegmentPriority2LevelList =  Arrays.stream(multiSegmentsPriority2List).boxed().collect(Collectors.toList());
-                    int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority2List, 0, multipleSegmentPriority2LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
-                    fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,multiSegmentsPriority1List, new int[]{});
+//                    List<Integer> multipleSegmentPriority2LevelList =  Arrays.stream(multiSegmentsPriority2List).boxed().collect(Collectors.toList());
+//                    int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority2List, 0, multipleSegmentPriority2LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
+//                    System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
+                    // scan if any Priority_1_Files have been queued or not //
+//                    List<File> priority1FileList = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,multiSegmentsPriority1List,satelliteId);
+                    scheduleMultiSegmentPriority1LevelWimsFiles(this.satelliteId,roundRobinHashMap,firstComeFirstServerProcessingMap,sequencePreemptiveRoundRobin,inputDirectory,movDir,archiveDirectory,multiSegmentsPriority1List,oneSegmentMessageIdArray,
+                            reverseHashMap,copyPollingDelay);
+                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
+
+//                    fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,multiSegmentsPriority1List, new int[]{});
 
                 }
             }else{
+                // strict priority scheduling
+                FilePriorityComparator filePriorityComparator = new FilePriorityComparator(multiSegmentsPriority2List);
+                filesPriorityQueue.sort(filePriorityComparator);
                 filesPriorityQueue = fileTasks.reverseMessageId(reverseHashMap,filesPriorityQueue,multiSegmentsPriority2List,wimsSatellite);
                 for (File aFile:filesPriorityQueue) {
                     // System.out.println(ConsoleColors.CYAN_BOLD_BRIGHT + aFile +ConsoleColors.RESET);
-                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
                     List<Integer> multipleSegmentPriority2LevelList =  Arrays.stream(multiSegmentsPriority2List).boxed().collect(Collectors.toList());
                     int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority2List, 0, multipleSegmentPriority2LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
-                    fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,multiSegmentsPriority1List,higherPriorityMessageIdArray);
+//                    System.out.println("--from priority level 2 -> " + Arrays.toString(higherPriorityMessageIdArray));
+                    scheduleMultiSegmentPriority1LevelWimsFiles(this.satelliteId,roundRobinHashMap,firstComeFirstServerProcessingMap,sequencePreemptiveRoundRobin,inputDirectory,movDir,archiveDirectory,multiSegmentsPriority1List,oneSegmentMessageIdArray,
+                            reverseHashMap,copyPollingDelay);
+
+                    List<File>  updatedSameLevelHigherPriorityFiles = fileTasks.fetchFilesFromDirectoryPerMsgId(inputDirectory,higherPriorityMessageIdArray,satelliteId);
+                    for (File aSameLevelHigherPriorityFile: updatedSameLevelHigherPriorityFiles) {
+                        scheduleMultiSegmentPriority1LevelWimsFiles(this.satelliteId,roundRobinHashMap,firstComeFirstServerProcessingMap,sequencePreemptiveRoundRobin,inputDirectory,movDir,archiveDirectory,multiSegmentsPriority1List,oneSegmentMessageIdArray,
+                                reverseHashMap,copyPollingDelay);
+                        processWimsSchedule.consumeNProcessWimsScheduledFiles(aSameLevelHigherPriorityFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
+
+                    }
+//                    fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,multiSegmentsPriority1List,higherPriorityMessageIdArray);
+                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
 
                 }
             }
@@ -132,7 +198,7 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
 
         }else{
             //  Round Robin Processing to be executed here
-            List<List<File>> listList = fileTasks.yieldSamePrioritySchedule(multiSegmentsPriority2List,(inputDirectory),reverseHashMap);
+            List<List<File>> listList = fileTasks.yieldSamePrioritySchedule(multiSegmentsPriority2List,(inputDirectory),reverseHashMap,satelliteId);
             listList.removeIf(List::isEmpty);
             for (List<File> fileList: listList ) {
                 for (File aFile: fileList) {
@@ -143,12 +209,16 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
             for (List<File> fileList: listList ) {
                 for (File aFile: fileList) {
                     aFileInList=aFile;
-                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir);
+                    processWimsSchedule.consumeNProcessWimsScheduledFiles(aFile,movDir,archiveDirectory,satelliteId,copyPollingDelay);
                     //System.out.println(aFile);
                     if(!sequencePreemptiveRoundRobin){
                         List<Integer> multipleSegmentPriority2LevelList =  Arrays.stream(multiSegmentsPriority2List).boxed().collect(Collectors.toList());
                         int[] higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority2List, 0, multipleSegmentPriority2LevelList.indexOf(Integer.parseInt(aFile.getName().split("_")[2]))).toArray();
-                        fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,multiSegmentsPriority1List,new int[] {});
+                        System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
+                        scheduleMultiSegmentPriority1LevelWimsFiles(this.satelliteId,roundRobinHashMap,firstComeFirstServerProcessingMap,sequencePreemptiveRoundRobin,inputDirectory,movDir,archiveDirectory,multiSegmentsPriority1List,oneSegmentMessageIdArray,
+                                reverseHashMap,copyPollingDelay);
+
+//                        fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,multiSegmentsPriority1List,new int[]{});
                     }
 
                 }
@@ -158,7 +228,11 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
                     if (aFileInList != null) {
                         higherPriorityMessageIdArray = Arrays.stream(multiSegmentsPriority2List, 0, multipleSegmentPriority2LevelList.indexOf(Integer.parseInt(aFileInList.getName().split("_")[2]))).toArray();
                     }
-                    fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,multiSegmentsPriority1List,new int[] {});
+                    System.out.println("---> " + Arrays.toString(higherPriorityMessageIdArray));
+                    scheduleMultiSegmentPriority1LevelWimsFiles(this.satelliteId,roundRobinHashMap,firstComeFirstServerProcessingMap,sequencePreemptiveRoundRobin,inputDirectory,movDir,archiveDirectory,multiSegmentsPriority1List,oneSegmentMessageIdArray,
+                            reverseHashMap,copyPollingDelay);
+
+//                    fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,archiveDirectory,satelliteId,oneSegmentMessageIdArray,multiSegmentsPriority1List,new int[]{});
                 }
 
 
@@ -167,7 +241,7 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
         }
     }
 
-    public  void scheduleMultiSegmentRemainingPriorityWimsFiles(int[] oneSegmentMessageIdArray,int[] multiSegmentsPriority1List,int[] multiSegmentsPriority2List,
+   /* public  void scheduleMultiSegmentRemainingPriorityWimsFiles(int[] oneSegmentMessageIdArray,int[] multiSegmentsPriority1List,int[] multiSegmentsPriority2List,
                                                                        File inputDirectory,String movDir) {
         System.out.println(ConsoleColors.RED_BOLD_BRIGHT + " starting scheduleMultiSegmentRemainingPriorityWimsFiles " + ConsoleColors.RESET);
         IProcessWimsSchedule processWimsSchedule = new ProcessWimsSchedule();
@@ -181,7 +255,7 @@ public    void scheduleSingleSegmentWimsFiles(List<File> oneSegmentPriorityQueue
             fileTasks.scheduleHigherPriority2NMultipleSegmentFilesPresent(inputDirectory,movDir,oneSegmentMessageIdArray,multiSegmentsPriority1List,multiSegmentsPriority2List);
 
         }
-    }
+    } */
 
 
 
